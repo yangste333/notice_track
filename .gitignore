@@ -44,3 +44,4 @@ app.*.map.json
 
 # for security reasons
 /android/app/google-services.json
+/lib/firebase_options.dart
