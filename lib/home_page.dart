@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:notice_track/settings_page.dart';
 import 'package:notice_track/widgets/map.dart';
 
 class MyHomePage extends StatefulWidget {
@@ -11,10 +12,29 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+
+  String currentPage = "Settings";
+
+  Widget _showSettingsPage(){
+    return Scaffold(
+      appBar: _getAppBar(widget.title),
+      resizeToAvoidBottomInset: false,
+      body: SettingsPage(
+        returnToPreviousPage: (){
+          setState((){
+            currentPage = "Homepage";
+          });
+        }
+      )
+    );
+  }
   bool creatingEvent = false;
 
   @override
   Widget build(BuildContext context) {
+    if (currentPage == "Settings") {
+      return _showSettingsPage();
+    }
     return Scaffold(
       appBar: _getAppBar(widget.title),
       resizeToAvoidBottomInset: false,
@@ -39,6 +59,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       title: Text(title),
+      actions: [],
     );
   }
   
