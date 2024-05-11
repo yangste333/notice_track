@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
@@ -12,7 +11,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:notice_track/database/firestore_service.dart';
 import 'package:notice_track/home_page.dart';
 import 'package:notice_track/settings_page.dart';
+import 'package:notice_track/user_settings.dart';
 import 'package:notice_track/widgets/map.dart';
+import 'package:notice_track/yaml_readers/yaml_reader.dart';
 
 class MockFirebaseService extends Mock implements FirestoreService{
   List<MarkerData> markers = [MarkerData(position: const LatLng(1.0, 2.0), label: 'Example', description: 'Example', )];
@@ -32,6 +33,36 @@ class MockFirebaseService extends Mock implements FirestoreService{
   }
 }
 
+class MockHiveDatabase extends Mock implements Box<UserSettings>{
+  UserSettings settings = UserSettings(true, {}, "Example");
+
+  @override
+  Future<void> put(dynamic key, UserSettings value) async {
+    settings = value;
+  }
+
+  @override
+  UserSettings get(dynamic key, {UserSettings? defaultValue}){
+    return settings;
+  }
+}
+
+class MockYamlReader extends Mock implements YamlReader{
+  List<dynamic> currentList;
+
+  MockYamlReader({this.currentList = const []});
+
+  updateList(List list){
+    currentList = list;
+  }
+
+  @override
+  List<dynamic> getCategories(){
+
+    return [currentList];
+  }
+}
+
 
 void main() {
   group('User Interface', () {
@@ -40,8 +71,10 @@ void main() {
       // Build app and trigger a frame
 
       MockFirebaseService mockFirebase = MockFirebaseService();
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
 
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase));
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
 
       await tester.pumpAndSettle();
 
@@ -69,8 +102,11 @@ void main() {
     testWidgets('Tapping map during event creation triggers a dialog', (
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
-      // Open event creation mode
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
+
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -86,8 +122,11 @@ void main() {
     testWidgets('Marker gets added on map after event registration', (
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
-      // Initial setup
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase));
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
+
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -117,8 +156,11 @@ void main() {
     testWidgets('Pressing submit with empty fields should not add a marker', (
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
-      // Open event creation mode
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
+
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -140,8 +182,11 @@ void main() {
         'Pressing cancel during event creation should not add a marker', (
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
-      // Open event creation mode
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
+
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -165,8 +210,11 @@ void main() {
     testWidgets('Markers display label on map without interaction', (
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
-      // Open event creation mode
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
+
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -193,8 +241,11 @@ void main() {
         'Markers retain correct label and description upon dialog interaction', (
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
-      // Open event creation mode
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
+
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -227,8 +278,11 @@ void main() {
     testWidgets('Consecutive event registrations generate all markers', (
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
-      // Open event creation mode
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
+
 
       // Repeat the logic to add three distinct markers
       for (var i = 0; i < 3; i++) {
@@ -261,8 +315,11 @@ void main() {
     testWidgets('Event creation mode is disabled upon event creation', (
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
-      // Enable event creation mode
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
+
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -289,8 +346,11 @@ void main() {
     testWidgets('Event creation mode is disabled when user presses cancel', (
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
-      // Open event creation mode
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
+
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -311,7 +371,11 @@ void main() {
         'Multiple toggles of event creation button does not add markers', (
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
+
 
       // Toggle event creation on and off multiple times
       for (int i = 0; i < 5; i++) {
@@ -328,7 +392,11 @@ void main() {
     testWidgets('Consecutive cancellations does not add markers', (
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
-      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
+
 
       // Press create event, then cancel consecutively without adding any marker
       for (int i = 0; i < 3; i++) {
@@ -344,28 +412,104 @@ void main() {
           matching: find.widgetWithText(Container, 'Test Event')),
           findsNothing);
     });
+    testWidgets('Settings page comes up when tapping settings button', (WidgetTester tester) async {
+      MockFirebaseService mockFirebase = MockFirebaseService();
+      MockHiveDatabase mockHiveDatabase = MockHiveDatabase();
+      MockYamlReader mockYamlReader = MockYamlReader();
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockHiveDatabase, settingsReader: mockYamlReader,));
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byIcon(Icons.settings));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MapWidget), findsNothing);
+      expect(find.byType(SettingsPage), findsOneWidget);
+
+      await tester.tap(find.text("Back"));
+
+      await tester.pumpAndSettle();
+
+      expect(find.byType(MapWidget), findsOneWidget);
+      expect(find.byType(SettingsPage), findsNothing);
+    });
   });
   group('Settings Page', () {
     testWidgets('Settings page is exited correctly with back button', (WidgetTester tester) async {
-
+      MockHiveDatabase settings = MockHiveDatabase();
+      MockYamlReader reader = MockYamlReader();
       bool _backCalled = false;
       exampleCallBack(){
         _backCalled = true;
       }
-      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SettingsPage(returnToPreviousPage: exampleCallBack))));
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SettingsPage(
+        returnToPreviousPage: exampleCallBack, settingsBox: settings,
+        settingsReader: reader,
+      ))));
+      expect(find.text("Loading..."), findsOneWidget);
 
-      tester.tap(find.byWidget(const Text("Back")));
+      await tester.pumpAndSettle();
+      expect(find.text("Back"), findsOneWidget);
+
+      await tester.tap(find.text("Back"));
       expect(_backCalled, true);
     });
-    testWidgets('Settings page saves current settings', (WidgetTester tester) async {
+    testWidgets('Settings page saves settings for base notification and screen name changes', (WidgetTester tester) async {
+      MockHiveDatabase settings = MockHiveDatabase();
+      MockYamlReader reader = MockYamlReader(currentList: ["Test 1", "Test 2"]);
       bool _backCalled = false;
       exampleCallBack(){
         _backCalled = true;
       }
-      await tester.pumpWidget(Scaffold(body: SettingsPage(returnToPreviousPage: exampleCallBack,)));
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SettingsPage(
+        returnToPreviousPage: exampleCallBack, settingsBox: settings,
+        settingsReader: reader,
+      ))));
 
-      Finder finder = find.byType(Checkbox);
-      print(finder.allCandidates);
+      await tester.pumpAndSettle();
+
+      final tileFinder = find.widgetWithText(ListTile, "Notifications");
+      expect(tileFinder, findsOneWidget);
+      final checkboxFinder = find.descendant(of: tileFinder, matching: find.byType(Checkbox));
+      expect(checkboxFinder, findsOneWidget);
+      await tester.tap(checkboxFinder);
+
+      final textFinder = find.byType(TextFormField);
+      expect(textFinder, findsOneWidget);
+      await tester.enterText(textFinder, "OtherScreenName");
+
+      await tester.tap(find.text("Submit"));
+      expect(_backCalled, true);
+      expect(settings.settings.getNotifications, false);
+      expect(settings.settings.notificationTypes, {"Test 1": true, "Test 2": true});
+      expect(settings.settings.screenName, "OtherScreenName");
+    });
+    testWidgets('Settings page saves settings for notification statuses', (WidgetTester tester) async {
+      MockHiveDatabase settings = MockHiveDatabase();
+      MockYamlReader reader = MockYamlReader(currentList: ["Test 1", "Test 2"]);
+      bool _backCalled = false;
+      exampleCallBack(){
+        _backCalled = true;
+      }
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SettingsPage(
+        returnToPreviousPage: exampleCallBack, settingsBox: settings,
+        settingsReader: reader,
+      ))));
+
+      await tester.pumpAndSettle();
+
+      final tileFinder = find.widgetWithText(ListTile, "Test 1");
+      expect(tileFinder, findsOneWidget);
+      final checkboxFinder = find.descendant(of: tileFinder, matching: find.byType(Checkbox));
+      expect(checkboxFinder, findsOneWidget);
+      await tester.tap(checkboxFinder);
+
+      await tester.tap(find.text("Submit"));
+      expect(_backCalled, true);
+      expect(settings.settings.getNotifications, true);
+      expect(settings.settings.notificationTypes, {"Test 1": false, "Test 2": true});
+      expect(settings.settings.screenName, "Example");
     });
   });
 }

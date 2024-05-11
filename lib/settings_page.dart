@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:notice_track/yaml_readers/yaml_reader.dart';
 import 'package:hive/hive.dart';
 import 'user_settings.dart';
 
 class SettingsPage extends StatefulWidget {
+  final Box settingsBox;
+  final YamlReader settingsReader;
   final Function() returnToPreviousPage;
-  const SettingsPage({super.key, required this.returnToPreviousPage});
+  const SettingsPage({super.key, required this.returnToPreviousPage, required this.settingsBox, required this.settingsReader});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -13,18 +15,28 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
 
-  late Box _settingsBox;
   late bool _notificationState;
   late Map<String, bool> _activeNotifications;
   late String _screenName;
   late Future<void> _setUpDatabaseFuture;
 
   Future<void> _setUpDatabase() async {
-    _settingsBox = await Hive.openBox<UserSettings>('user_settings');
-    final UserSettings? settings = _settingsBox.get('user_settings');
+    final UserSettings? settings = widget.settingsBox.get('user_settings');
     _notificationState = (settings != null) ? settings.getNotifications : true;
-    _activeNotifications = (settings != null) ? settings.notificationTypes : {"Dangers": true}; // once we have a list of "notifications", it shouldn't be that bad
+    _activeNotifications = (settings != null) ? settings.notificationTypes : _createNotificationMap();
+    if (widget.settingsReader.getCategories()[0].length != _activeNotifications.keys.length){
+      _activeNotifications = _createNotificationMap();
+    }
     _screenName = (settings != null) ? settings.screenName : "Stephen";
+  }
+
+  Map<String, bool> _createNotificationMap(){
+    List notificationList = widget.settingsReader.getCategories();
+    Map<String, bool> toReturn = {};
+    for (String s in notificationList[0]){
+      toReturn[s] = true;
+    }
+    return toReturn;
   }
 
   @override
@@ -95,7 +107,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ElevatedButton(
                 onPressed: (){
                   UserSettings putIn = UserSettings(_notificationState, _activeNotifications, _screenName);
-                  _settingsBox.put('user_settings', putIn);
+                  widget.settingsBox.put('user_settings', putIn);
                   widget.returnToPreviousPage();
                 },
                 child: const Text("Submit")
