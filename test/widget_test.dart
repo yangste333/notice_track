@@ -57,6 +57,11 @@ class MockYamlReader extends Mock implements YamlReader{
   }
 
   @override
+  Future<void> initializeReader() async {
+    // do nothing
+  }
+
+  @override
   List<dynamic> getCategories(){
 
     return [currentList];
@@ -510,6 +515,20 @@ void main() {
       expect(settings.settings.getNotifications, true);
       expect(settings.settings.notificationTypes, {"Test 1": false, "Test 2": true});
       expect(settings.settings.screenName, "Example");
+    });
+  });
+  group("File Reading", () {
+    test("Reads the notification_categories.yaml file properly", () async{
+      YamlReader reader = YamlReader(filename: 'lib/assets/notification_categories.yaml');
+      await reader.initializeReader();
+      List<dynamic> getStuff = reader.getCategories();
+      expect(getStuff[0], ["Dangers", "Events", "Nature", "Other"]);
+    });
+    test("Does not get file that does not exist", () async{
+      YamlReader reader = YamlReader(filename: "doesnotexist");
+      await reader.initializeReader();
+      List<dynamic> getStuff = reader.getCategories();
+      expect(getStuff, []);
     });
   });
 }
