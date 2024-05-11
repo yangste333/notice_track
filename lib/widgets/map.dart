@@ -7,8 +7,9 @@ import 'package:notice_track/database/firestore_service.dart';
 class MapWidget extends StatefulWidget {
   final bool creatingEvent;
   final VoidCallback onEventCreationCancelled;
+  final FirestoreService firestoreService;
 
-  const MapWidget({super.key, required this.creatingEvent, required this.onEventCreationCancelled});
+  const MapWidget({super.key, required this.creatingEvent, required this.onEventCreationCancelled, required this.firestoreService});
 
   @override
   State<MapWidget> createState() => _MapWidgetState();
@@ -16,7 +17,6 @@ class MapWidget extends StatefulWidget {
 
 class _MapWidgetState extends State<MapWidget> {
   List<Marker> events = [];
-  final FirestoreService firestoreService = FirestoreService();
 
 
   @override
@@ -49,7 +49,7 @@ class _MapWidgetState extends State<MapWidget> {
   ////////////////////////////////////////////////////////////////////////////
 
   void _getMarkersFromFirebase() {
-    firestoreService.pullMarkers().listen((markerDataList) {
+    widget.firestoreService.pullMarkers().listen((markerDataList) {
       setState(() {
         events = markerDataList.map((markerData) =>
             EventMarker.createEventMarker(
@@ -114,7 +114,7 @@ class _MapWidgetState extends State<MapWidget> {
                   () => _showEventInfo(labelController.text, descriptionController.text),
             );
             setState(() => events.add(newMarker));
-            firestoreService.pushMarker(latlng, labelController.text, descriptionController.text);
+            widget.firestoreService.pushMarker(latlng, labelController.text, descriptionController.text);
             Navigator.of(context).pop();
           }
         },

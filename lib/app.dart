@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:notice_track/database/firestore_service.dart';
 import 'package:notice_track/home_page.dart';
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final FirestoreService firestoreService;
+  const MyApp({super.key, required this.firestoreService});
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +13,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightBlue),
       ),
-      home: const MyHomePage(title: 'NoticeTrack'),
+      home: MyHomePage(title: 'NoticeTrack', firestoreService: firestoreService,),
     );
   }
 }
