@@ -13,6 +13,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final YamlReader reader = YamlReader(filename: 'lib/assets/notification_categories.yaml');
+  await reader.initializeReader();
 
   await Hive.initFlutter();
   Hive.registerAdapter(UserSettingsAdapter());

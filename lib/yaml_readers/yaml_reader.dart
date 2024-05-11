@@ -5,11 +5,10 @@ class YamlReader{
   final String filename;
   List<dynamic> _categories = [];
 
-  YamlReader({required this.filename}){
-    _initializeReader(filename);
-  }
+  YamlReader({required this.filename});
 
-  Future<void> _initializeReader(String filename) async{
+  Future<void> initializeReader() async{
+    _categories = [];
     try {
       String yamlString = await rootBundle.loadString(filename);
       var yamlMap = await loadYaml(yamlString) as YamlMap;
