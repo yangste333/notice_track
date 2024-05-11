@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:notice_track/settings_page.dart';
 import 'package:notice_track/widgets/map.dart';
 
+import 'database/firestore_service.dart';
+
 class MyHomePage extends StatefulWidget {
   final String title;
+  final FirestoreService firestoreService;
   
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({super.key, required this.title, required this.firestoreService});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -13,7 +16,8 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
 
-  String currentPage = "Settings";
+  String currentPage = "Homepage";
+
 
   Widget _showSettingsPage(){
     return Scaffold(
@@ -43,6 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
           MapWidget(
             creatingEvent: creatingEvent,
             onEventCreationCancelled: cancelEventCreation,
+            firestoreService: widget.firestoreService
           ),
           if (creatingEvent) _eventCreationTooltip(),
         ],

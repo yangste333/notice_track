@@ -6,13 +6,16 @@ import 'package:notice_track/app.dart';
 import 'package:notice_track/user_settings.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'database/firestore_service.dart';
+
 void main() async {
 
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   Hive.registerAdapter(UserSettingsAdapter());
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const MyApp());
+  var exampleOptions = FirestoreService();
+  runApp(MyApp(firestoreService: exampleOptions,));
 }
 
 

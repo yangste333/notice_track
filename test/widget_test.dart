@@ -1,14 +1,49 @@
+import 'dart:async';
+
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
+import 'package:hive_flutter/adapters.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:mockito/mockito.dart';
 import 'package:notice_track/app.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:notice_track/database/firestore_service.dart';
+import 'package:notice_track/home_page.dart';
+import 'package:notice_track/settings_page.dart';
+import 'package:notice_track/widgets/map.dart';
+
+class MockFirebaseService extends Mock implements FirestoreService{
+  List<MarkerData> markers = [MarkerData(position: const LatLng(1.0, 2.0), label: 'Example', description: 'Example', )];
+
+  @override
+  Stream<List<MarkerData>> pullMarkers() {
+
+    return Stream.fromIterable([
+      markers
+    ]);
+  }
+
+  @override
+  Future<void> pushMarker(LatLng position, String label, String description){
+    markers.add(MarkerData(position: position, label: label, description: description));
+    return Future.value();
+  }
+}
+
 
 void main() {
   group('User Interface', () {
     testWidgets(
         'Event creation button toggles correctly', (WidgetTester tester) async {
       // Build app and trigger a frame
-      await tester.pumpWidget(const MyApp());
+
+      MockFirebaseService mockFirebase = MockFirebaseService();
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase));
+
+      await tester.pumpAndSettle();
 
       // Verify that the create event button is present
       expect(find.byIcon(Icons.add_location), findsOneWidget);
@@ -33,8 +68,9 @@ void main() {
 
     testWidgets('Tapping map during event creation triggers a dialog', (
         WidgetTester tester) async {
+      MockFirebaseService mockFirebase = MockFirebaseService();
       // Open event creation mode
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -49,8 +85,9 @@ void main() {
 
     testWidgets('Marker gets added on map after event registration', (
         WidgetTester tester) async {
+      MockFirebaseService mockFirebase = MockFirebaseService();
       // Initial setup
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase));
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -79,8 +116,9 @@ void main() {
 
     testWidgets('Pressing submit with empty fields should not add a marker', (
         WidgetTester tester) async {
+      MockFirebaseService mockFirebase = MockFirebaseService();
       // Open event creation mode
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -101,8 +139,9 @@ void main() {
     testWidgets(
         'Pressing cancel during event creation should not add a marker', (
         WidgetTester tester) async {
+      MockFirebaseService mockFirebase = MockFirebaseService();
       // Open event creation mode
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -125,8 +164,9 @@ void main() {
 
     testWidgets('Markers display label on map without interaction', (
         WidgetTester tester) async {
+      MockFirebaseService mockFirebase = MockFirebaseService();
       // Open event creation mode
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -152,8 +192,9 @@ void main() {
     testWidgets(
         'Markers retain correct label and description upon dialog interaction', (
         WidgetTester tester) async {
+      MockFirebaseService mockFirebase = MockFirebaseService();
       // Open event creation mode
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -185,8 +226,9 @@ void main() {
 
     testWidgets('Consecutive event registrations generate all markers', (
         WidgetTester tester) async {
+      MockFirebaseService mockFirebase = MockFirebaseService();
       // Open event creation mode
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
 
       // Repeat the logic to add three distinct markers
       for (var i = 0; i < 3; i++) {
@@ -218,8 +260,9 @@ void main() {
 
     testWidgets('Event creation mode is disabled upon event creation', (
         WidgetTester tester) async {
+      MockFirebaseService mockFirebase = MockFirebaseService();
       // Enable event creation mode
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -245,8 +288,9 @@ void main() {
 
     testWidgets('Event creation mode is disabled when user presses cancel', (
         WidgetTester tester) async {
+      MockFirebaseService mockFirebase = MockFirebaseService();
       // Open event creation mode
-      await tester.pumpWidget(const MyApp());
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
@@ -266,7 +310,8 @@ void main() {
     testWidgets(
         'Multiple toggles of event creation button does not add markers', (
         WidgetTester tester) async {
-      await tester.pumpWidget(const MyApp());
+      MockFirebaseService mockFirebase = MockFirebaseService();
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
 
       // Toggle event creation on and off multiple times
       for (int i = 0; i < 5; i++) {
@@ -282,7 +327,8 @@ void main() {
 
     testWidgets('Consecutive cancellations does not add markers', (
         WidgetTester tester) async {
-      await tester.pumpWidget(const MyApp());
+      MockFirebaseService mockFirebase = MockFirebaseService();
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase,));
 
       // Press create event, then cancel consecutively without adding any marker
       for (int i = 0; i < 3; i++) {
@@ -297,6 +343,29 @@ void main() {
       expect(find.descendant(of: find.byType(FlutterMap),
           matching: find.widgetWithText(Container, 'Test Event')),
           findsNothing);
+    });
+  });
+  group('Settings Page', () {
+    testWidgets('Settings page is exited correctly with back button', (WidgetTester tester) async {
+
+      bool _backCalled = false;
+      exampleCallBack(){
+        _backCalled = true;
+      }
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: SettingsPage(returnToPreviousPage: exampleCallBack))));
+
+      tester.tap(find.byWidget(const Text("Back")));
+      expect(_backCalled, true);
+    });
+    testWidgets('Settings page saves current settings', (WidgetTester tester) async {
+      bool _backCalled = false;
+      exampleCallBack(){
+        _backCalled = true;
+      }
+      await tester.pumpWidget(Scaffold(body: SettingsPage(returnToPreviousPage: exampleCallBack,)));
+
+      Finder finder = find.byType(Checkbox);
+      print(finder.allCandidates);
     });
   });
 }
