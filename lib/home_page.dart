@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:notice_track/settings_page.dart';
 import 'package:notice_track/widgets/map.dart';
+import 'package:notice_track/yaml_readers/yaml_reader.dart';
 
 import 'database/firestore_service.dart';
 
 class MyHomePage extends StatefulWidget {
   final String title;
   final FirestoreService firestoreService;
+  final Box settingsBox;
+  final YamlReader settingsReader;
   
-  const MyHomePage({super.key, required this.title, required this.firestoreService});
+  const MyHomePage({super.key, required this.title, required this.firestoreService, required this.settingsBox, required this.settingsReader});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -28,7 +32,9 @@ class _MyHomePageState extends State<MyHomePage> {
           setState((){
             currentPage = "Homepage";
           });
-        }
+        },
+        settingsBox: widget.settingsBox,
+        settingsReader: widget.settingsReader,
       )
     );
   }
@@ -64,7 +70,17 @@ class _MyHomePageState extends State<MyHomePage> {
     return AppBar(
       backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       title: Text(title),
-      actions: [],
+      actions: currentPage == "Settings" ? [] :
+        [IconButton(
+          icon: const Icon(Icons.settings),
+          onPressed: () {
+            setState((){
+              creatingEvent = false;
+              currentPage = "Settings";
+            });
+          }
+        )
+      ],
     );
   }
   
