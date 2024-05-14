@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+
 import 'package:notice_track/settings_page.dart';
 import 'package:notice_track/widgets/map.dart';
 import 'package:notice_track/yaml_readers/yaml_reader.dart';
-
-import 'database/firestore_service.dart';
+import 'package:notice_track/database/firestore_service.dart';
 
 class MyHomePage extends StatefulWidget {
   final String title;
@@ -19,9 +19,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-
+  int nearbyEventCount = 0;
   String currentPage = "Homepage";
-
 
   Widget _showSettingsPage(){
     return Scaffold(
@@ -53,9 +52,11 @@ class _MyHomePageState extends State<MyHomePage> {
           MapWidget(
             creatingEvent: creatingEvent,
             onEventCreationCancelled: cancelEventCreation,
-            firestoreService: widget.firestoreService
+            onEventsNearby: _onEventsNearby,
+            firestoreService: widget.firestoreService,
           ),
           if (creatingEvent) _eventCreationTooltip(),
+          if (nearbyEventCount > 0) _nearbyEventTooltip(),
         ],
       ),
       floatingActionButton: _createEventButton(),
@@ -129,6 +130,31 @@ class _MyHomePageState extends State<MyHomePage> {
           'Tap a location to register an event.',
           textAlign: TextAlign.center,
           style: TextStyle(color: Colors.white, fontSize: 16),
+        ),
+      ),
+    );
+  }
+
+  void _onEventsNearby(int events) {
+    setState(() {
+      nearbyEventCount = events;
+    });
+  }
+
+  Widget _nearbyEventTooltip() {
+    return Positioned(
+      bottom: 140,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        color: Colors.red[900]!.withOpacity(0.5),
+        child: SingleChildScrollView(
+          child: Text(
+            "There are $nearbyEventCount events within 5km",
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+          ),
         ),
       ),
     );

@@ -9,7 +9,6 @@ import 'package:mockito/mockito.dart';
 import 'package:notice_track/app.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:notice_track/database/firestore_service.dart';
-import 'package:notice_track/home_page.dart';
 import 'package:notice_track/settings_page.dart';
 import 'package:notice_track/user_settings.dart';
 import 'package:notice_track/widgets/map.dart';

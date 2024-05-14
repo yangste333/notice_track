@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
-import 'package:notice_track/database/firestore_service.dart';
+
 import 'package:notice_track/home_page.dart';
 import 'package:notice_track/yaml_readers/yaml_reader.dart';
+import 'package:notice_track/database/firestore_service.dart';
 
 class MyApp extends StatelessWidget {
   final FirestoreService firestoreService;

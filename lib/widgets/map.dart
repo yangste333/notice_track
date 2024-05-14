@@ -1,15 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
+import 'dart:async';
+
 import 'package:notice_track/widgets/event.dart';
 import 'package:notice_track/database/firestore_service.dart';
 
 class MapWidget extends StatefulWidget {
   final bool creatingEvent;
   final VoidCallback onEventCreationCancelled;
+  final Function(int)? onEventsNearby;
   final FirestoreService firestoreService;
 
-  const MapWidget({super.key, required this.creatingEvent, required this.onEventCreationCancelled, required this.firestoreService});
+  const MapWidget({
+    super.key,
+    required this.creatingEvent,
+    required this.onEventCreationCancelled,
+    this.onEventsNearby,
+    required this.firestoreService
+  });
 
   @override
   State<MapWidget> createState() => _MapWidgetState();
@@ -17,16 +27,30 @@ class MapWidget extends StatefulWidget {
 
 class _MapWidgetState extends State<MapWidget> {
   List<Marker> events = [];
-
+  Marker? userLocationMarker;
+  Timer? _timer;  // Declare a Timer
 
   @override
   void initState() {
     super.initState();
     _getMarkersFromFirebase();
+    _getUserLocation();
+    _startPeriodicFirebaseUpdates();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();  // Cancel the timer when the widget gets disposed
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    List<Marker> allMarkers = List<Marker>.from(events);
+    if (userLocationMarker != null) {
+      allMarkers.add(userLocationMarker!);
+    }
+
     return FlutterMap(
       options: MapOptions(
         interactionOptions: const InteractionOptions(flags: ~InteractiveFlag.doubleTapZoom),
@@ -39,7 +63,7 @@ class _MapWidgetState extends State<MapWidget> {
           urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'dev.fleaflet.flutter_map.example',
         ),
-        MarkerLayer(markers: events)
+        MarkerLayer(markers: allMarkers),
       ],
     );
   }
@@ -60,6 +84,79 @@ class _MapWidgetState extends State<MapWidget> {
         ).toList();
       });
     });
+  }
+
+  void _getUserLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Check if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      await Geolocator.openLocationSettings();
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        // Permissions are denied, try again next time.
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      // Permissions are denied forever.
+      return;
+    }
+
+    // Continuously update location.
+    Geolocator.getPositionStream().listen((Position position) {
+      setState(() {
+        userLocationMarker = Marker(
+          point: LatLng(position.latitude, position.longitude),
+          width: 74,
+          height: 74,
+          alignment: Alignment.topCenter,
+          rotate: true,
+          child: const Icon(
+            Icons.location_on_sharp,
+            size: 50,
+            color: Colors.blue,
+          ),
+        );
+      });
+      _checkEventProximity(position);
+    });
+  }
+
+  void _startPeriodicFirebaseUpdates() {
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _getMarkersFromFirebase();  // Get updated data from Firebase every 30 seconds.
+    });
+  }
+
+  void _checkEventProximity(Position position) {
+    const double distanceThreshold = 5000; // 5 Kilometer event threshold.
+    LatLng userLatLng = LatLng(position.latitude, position.longitude);
+    int nearbyEvents = 0;
+
+    for (Marker marker in events) {
+      double distance = Geolocator.distanceBetween(
+          userLatLng.latitude,
+          userLatLng.longitude,
+          marker.point.latitude,
+          marker.point.longitude
+      );
+
+      if (distance <= distanceThreshold) {
+        nearbyEvents++;
+      }
+
+      // Fire callback with event data
+      widget.onEventsNearby?.call(nearbyEvents);
+    }
   }
 
   void _handleTap(TapPosition tapPosition, LatLng latlng) {
