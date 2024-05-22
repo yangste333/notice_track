@@ -54,6 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onEventCreationCancelled: cancelEventCreation,
             onEventsNearby: _onEventsNearby,
             firestoreService: widget.firestoreService,
+            categoryReader: widget.settingsReader,
           ),
           if (creatingEvent) _eventCreationTooltip(),
           if (nearbyEventCount > 0) _nearbyEventTooltip(),

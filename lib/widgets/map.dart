@@ -7,18 +7,22 @@ import 'dart:async';
 import 'package:notice_track/widgets/event.dart';
 import 'package:notice_track/database/firestore_service.dart';
 
+import '../yaml_readers/yaml_reader.dart';
+
 class MapWidget extends StatefulWidget {
   final bool creatingEvent;
   final VoidCallback onEventCreationCancelled;
   final Function(int)? onEventsNearby;
   final FirestoreService firestoreService;
+  final YamlReader categoryReader;
 
   const MapWidget({
     super.key,
     required this.creatingEvent,
     required this.onEventCreationCancelled,
     this.onEventsNearby,
-    required this.firestoreService
+    required this.firestoreService,
+    required this.categoryReader
   });
 
   @override
@@ -79,7 +83,7 @@ class _MapWidgetState extends State<MapWidget> {
             EventMarker.createEventMarker(
                 markerData.position,
                 markerData.label,
-                    () => _showEventInfo(markerData.label, markerData.description)
+                    () => _showEventInfo(markerData.label, markerData.description, markerData.category)
             )
         ).toList();
       });
@@ -163,20 +167,30 @@ class _MapWidgetState extends State<MapWidget> {
     if (widget.creatingEvent) {
       TextEditingController labelController = TextEditingController();
       TextEditingController descriptionController = TextEditingController();
+      TextEditingController categoryController = TextEditingController();
+      String categoryItem = "";
+      categoryController.addListener(() {
+        setState((){
+          categoryItem = categoryController.text;
+        });
+      });
 
       showDialog(
         context: context,
         barrierDismissible: true,
         builder: (context) => AlertDialog(
           title: const Text('Register Event'),
-          content: _creationDialogContent(labelController, descriptionController),
-          actions: _creationDialogActions(context, latlng, labelController, descriptionController),
+          content: _creationDialogContent(labelController, descriptionController, categoryController, (String s){
+            categoryItem = s;
+          }),
+          actions: _creationDialogActions(context, latlng, labelController, descriptionController, categoryController, categoryItem),
         ),
       ).then((_) => widget.onEventCreationCancelled());
     }
   }
 
-  Widget _creationDialogContent(TextEditingController labelController, TextEditingController descriptionController) {
+  Widget _creationDialogContent(TextEditingController labelController, TextEditingController descriptionController,
+      TextEditingController categoryController, Function(String) updateCategory) {
     return SingleChildScrollView(
       child: ListBody(
         children: [
@@ -185,6 +199,14 @@ class _MapWidgetState extends State<MapWidget> {
             autofocus: true,
             decoration: const InputDecoration(hintText: 'Enter event type here'),
             textInputAction: TextInputAction.next,
+          ),
+          // add a dropdown for a category
+          DropdownMenu<String>(dropdownMenuEntries: widget.categoryReader.getCategories()[0].map<DropdownMenuEntry<String>>((dynamic e){
+              return DropdownMenuEntry<String>(label: e as String, value: e);
+            }).toList(),
+            controller: categoryController,
+            requestFocusOnTap: true,
+            label: const Text("Category"),
           ),
           TextField(
             controller: descriptionController,
@@ -196,7 +218,8 @@ class _MapWidgetState extends State<MapWidget> {
     );
   }
 
-  List<Widget> _creationDialogActions(BuildContext context, LatLng latlng, TextEditingController labelController, TextEditingController descriptionController) {
+  List<Widget> _creationDialogActions(BuildContext context, LatLng latlng, TextEditingController labelController, TextEditingController descriptionController,
+      TextEditingController categoryController, String finalCategory) {
     return [
       TextButton(
         onPressed: () => Navigator.of(context).pop(),
@@ -208,10 +231,10 @@ class _MapWidgetState extends State<MapWidget> {
             Marker newMarker = EventMarker.createEventMarker(
               latlng,
               labelController.text,
-                  () => _showEventInfo(labelController.text, descriptionController.text),
+                  () => _showEventInfo(labelController.text, descriptionController.text, finalCategory),
             );
             setState(() => events.add(newMarker));
-            widget.firestoreService.pushMarker(latlng, labelController.text, descriptionController.text);
+            widget.firestoreService.pushMarker(latlng, labelController.text, descriptionController.text, categoryController.text);
             Navigator.of(context).pop();
           }
         },
@@ -220,12 +243,18 @@ class _MapWidgetState extends State<MapWidget> {
     ];
   }
 
-  void _showEventInfo(String label, String description) {
+  void _showEventInfo(String label, String description, String category) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(label),
-        content: Text(description),
+        title:
+        Text(label),
+        content: Column(
+          children: [
+            Text(category),
+            Text(description),
+          ]
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
