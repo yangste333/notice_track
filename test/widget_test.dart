@@ -2,20 +2,25 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:mockito/mockito.dart';
 import 'package:notice_track/app.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:notice_track/background/background_location.dart';
+import 'package:notice_track/background/geolocation_service.dart';
+import 'package:notice_track/background/notification_service.dart';
 import 'package:notice_track/database/firestore_service.dart';
 import 'package:notice_track/settings_page.dart';
 import 'package:notice_track/user_settings.dart';
 import 'package:notice_track/widgets/map.dart';
 import 'package:notice_track/yaml_readers/yaml_reader.dart';
 
+
 class MockFirebaseService extends Mock implements FirestoreService{
-  List<MarkerData> markers = [MarkerData(position: const LatLng(1.0, 2.0), label: 'Example', description: 'Example', )];
+  List<MarkerData> markers = [MarkerData(position: const LatLng(1.0, 2.0), label: 'Example', description: 'Example', category: 'Example 1', )];
 
   @override
   Stream<List<MarkerData>> pullMarkers() {
@@ -26,8 +31,8 @@ class MockFirebaseService extends Mock implements FirestoreService{
   }
 
   @override
-  Future<void> pushMarker(LatLng position, String label, String description){
-    markers.add(MarkerData(position: position, label: label, description: description));
+  Future<void> pushMarker(LatLng position, String label, String description, String category){
+    markers.add(MarkerData(position: position, label: label, description: description, category: category));
     return Future.value();
   }
 }
@@ -49,9 +54,9 @@ class MockHiveDatabase extends Mock implements Box<UserSettings>{
 class MockYamlReader extends Mock implements YamlReader{
   List<dynamic> currentList;
 
-  MockYamlReader({this.currentList = const []});
+  MockYamlReader({this.currentList = const ["Category 1"]});
 
-  updateList(List list){
+  updateList(List<dynamic> list){
     currentList = list;
   }
 
@@ -120,7 +125,7 @@ void main() {
 
       // Expect dialog to open with label and description field
       expect(find.text('Register Event'), findsOneWidget);
-      expect(find.byType(TextField), findsNWidgets(2));
+      expect(find.byType(TextField), findsNWidgets(3));
     });
 
     testWidgets('Marker gets added on map after event registration', (
@@ -145,11 +150,13 @@ void main() {
       await tester.enterText(
           find.widgetWithText(TextField, 'Enter description here'),
           'Test Description');
+      await tester.tap(find.byType(DropdownMenu<String>));
+      await tester.tap(find.text("Category 1").last);
       await tester.tap(find.text('Submit'));
       await tester.pumpAndSettle();
 
       // Check if the marker is displayed
-      // expect(find.descendant(of: find.byType(FlutterMap), matching: find.widgetWithText(Container, 'Test Event')), findsOneWidget);
+      expect(find.descendant(of: find.byType(FlutterMap), matching: find.widgetWithText(Container, 'Test Event')), findsOneWidget);
 
       // Check if text related to 'Test Event' exists and is visible on the marker
       expect(find.descendant(of: find.byType(FlutterMap),
@@ -230,6 +237,8 @@ void main() {
       await tester.enterText(
           find.widgetWithText(TextField, 'Enter event type here'),
           'Test Event');
+      await tester.tap(find.byType(DropdownMenu<String>));
+      await tester.tap(find.text("Category 1").last);
       await tester.enterText(
           find.widgetWithText(TextField, 'Enter description here'), '');
       await tester.tap(find.text('Submit'));
@@ -246,7 +255,7 @@ void main() {
         WidgetTester tester) async {
       MockFirebaseService mockFirebase = MockFirebaseService();
       MockHiveDatabase mockSettings = MockHiveDatabase();
-      MockYamlReader mockReader = MockYamlReader();
+      MockYamlReader mockReader = MockYamlReader(currentList: ["Category", "Test", "Final"]);
 
       await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader,));
 
@@ -262,21 +271,45 @@ void main() {
       String testDescription = 'Test event description.';
       await tester.enterText(
           find.widgetWithText(TextField, 'Enter event type here'), testLabel);
+      await tester.tap(find.byType(DropdownMenu<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text("Final").last);
+
       await tester.enterText(
           find.widgetWithText(TextField, 'Enter description here'),
           testDescription);
       await tester.tap(find.text('Submit'));
       await tester.pumpAndSettle();
 
-      // Simulate tapping on the added marker to show event info
-      await tester.tap(find.descendant(of: find.byType(FlutterMap),
-          matching: find.widgetWithText(Container, 'Test Event')));
-      await tester.pumpAndSettle();
+      List<List<MarkerData>> markers = await mockFirebase.pullMarkers().toList();
+
+      expect(markers[0][1].category, "Final");
+      expect(markers[0][1].description, testDescription);
+      expect(markers[0][1].label, testLabel);
 
       // Verify correct labels and descriptions are shown in the dialog
-      expect(find.text(testLabel), findsNWidgets(2));
-      expect(find.text(testDescription), findsOneWidget);
-      expect(find.byType(AlertDialog), findsOneWidget);
+
+    });
+
+    testWidgets('Shows the widget information correctly', (WidgetTester tester) async {
+      MockFirebaseService mockFirebase = MockFirebaseService();
+      MockHiveDatabase mockSettings = MockHiveDatabase();
+      MockYamlReader mockReader = MockYamlReader();
+
+      mockFirebase.markers = [MarkerData(position: const LatLng(40.7128, -74.0060),
+          label: "Unique Label", description: "Unique description", category: "Category")];
+
+      await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader));
+
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.location_on_sharp), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.location_on_sharp));
+      await tester.pumpAndSettle();
+
+      expect(find.text("Unique Label"), findsNWidgets(2));
+      expect(find.text("Category"), findsOneWidget);
+      expect(find.text("Unique description"), findsOneWidget);
     });
 
     testWidgets('Consecutive event registrations generate all markers', (
@@ -530,4 +563,5 @@ void main() {
       expect(getStuff, []);
     });
   });
+  // notifications and geolocation probably need to be through an integration test
 }

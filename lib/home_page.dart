@@ -12,7 +12,8 @@ class MyHomePage extends StatefulWidget {
   final Box settingsBox;
   final YamlReader settingsReader;
   
-  const MyHomePage({super.key, required this.title, required this.firestoreService, required this.settingsBox, required this.settingsReader});
+  const MyHomePage({super.key, required this.title, required this.firestoreService,
+    required this.settingsBox, required this.settingsReader});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -54,6 +55,7 @@ class _MyHomePageState extends State<MyHomePage> {
             onEventCreationCancelled: cancelEventCreation,
             onEventsNearby: _onEventsNearby,
             firestoreService: widget.firestoreService,
+            categoryReader: widget.settingsReader,
           ),
           if (creatingEvent) _eventCreationTooltip(),
           if (nearbyEventCount > 0) _nearbyEventTooltip(),

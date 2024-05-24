@@ -4,11 +4,14 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:hive_flutter/adapters.dart';
 
 import 'package:notice_track/app.dart';
+import 'package:notice_track/background/geolocation_service.dart';
 import 'package:notice_track/user_settings.dart';
 import 'package:notice_track/yaml_readers/yaml_reader.dart';
 import 'package:notice_track/database/firebase_options.dart';
 import 'package:notice_track/database/firestore_service.dart';
 import 'package:notice_track/background/background_location.dart';
+
+import 'background/notification_service.dart';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -32,7 +35,9 @@ void main() async {
   var settingsBox = await Hive.openBox('settings');
 
   // Initialize the background location service to keep user updated
-  BackgroundLocationService backgroundLocationService = BackgroundLocationService(exampleOptions);
+  NotificationService notificationService = NotificationService();
+  GeolocationService geolocationService = GeolocationService();
+  BackgroundLocationService backgroundLocationService = BackgroundLocationService(notificationService, exampleOptions, geolocationService);
   backgroundLocationService.startTracking();
 
   runApp(MyApp(firestoreService: exampleOptions, settingsBox: settingsBox, settingsReader: reader,));
