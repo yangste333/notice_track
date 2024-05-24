@@ -5,12 +5,15 @@ import 'package:latlong2/latlong.dart';
 import 'package:notice_track/background/notification_service.dart';
 import 'package:notice_track/database/firestore_service.dart';
 
-class BackgroundLocationService {
-  late NotificationService notificationService;
-  final FirestoreService firestoreService;
+import 'geolocation_service.dart';
 
-  BackgroundLocationService(this.firestoreService) {
-    notificationService = NotificationService();
+class BackgroundLocationService {
+  final NotificationService notificationService;
+  final FirestoreService firestoreService;
+  final GeolocationService geolocationService;
+
+
+  BackgroundLocationService(this.notificationService, this.firestoreService, this.geolocationService) {
     _initiateBackgroundProcess();
   }
 

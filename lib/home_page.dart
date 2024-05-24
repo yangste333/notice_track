@@ -12,7 +12,8 @@ class MyHomePage extends StatefulWidget {
   final Box settingsBox;
   final YamlReader settingsReader;
   
-  const MyHomePage({super.key, required this.title, required this.firestoreService, required this.settingsBox, required this.settingsReader});
+  const MyHomePage({super.key, required this.title, required this.firestoreService,
+    required this.settingsBox, required this.settingsReader});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
