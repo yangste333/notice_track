@@ -37,7 +37,8 @@ void main() async {
   // Initialize the background location service to keep user updated
   NotificationService notificationService = NotificationService();
   GeolocationService geolocationService = GeolocationService();
-  BackgroundLocationService backgroundLocationService = BackgroundLocationService(notificationService, exampleOptions, geolocationService);
+  FlutterBackgroundService backgroundService = FlutterBackgroundService();
+  BackgroundLocationService backgroundLocationService = BackgroundLocationService(notificationService, exampleOptions, geolocationService, backgroundService);
   backgroundLocationService.startTracking();
 
   runApp(MyApp(firestoreService: exampleOptions, settingsBox: settingsBox, settingsReader: reader,));
