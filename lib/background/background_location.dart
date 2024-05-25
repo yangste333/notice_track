@@ -7,17 +7,19 @@ import 'package:notice_track/database/firestore_service.dart';
 
 import 'geolocation_service.dart';
 
-class BackgroundLocationService {
-  final NotificationService notificationService;
-  final FirestoreService firestoreService;
-  final GeolocationService geolocationService;
+abstract class BackgroundService{
+  Future<void> initialize();
+  Future<void> enableBackgroundExecution();
+}
 
-
-  BackgroundLocationService(this.notificationService, this.firestoreService, this.geolocationService) {
-    _initiateBackgroundProcess();
+class FlutterBackgroundService extends BackgroundService{
+  @override
+  Future<void> enableBackgroundExecution() async{
+    await FlutterBackground.enableBackgroundExecution();
   }
 
-  Future<void> _initiateBackgroundProcess() async {
+  @override
+  Future<void> initialize() async{
     await FlutterBackground.initialize(
       androidConfig: const FlutterBackgroundAndroidConfig(
         notificationTitle: 'Location Tracking',
@@ -27,11 +29,27 @@ class BackgroundLocationService {
     );
   }
 
+}
+
+class BackgroundLocationService {
+  final NotificationService notificationService;
+  final FirestoreService firestoreService;
+  final GeolocationService geolocationService;
+  final BackgroundService backgroundService;
+
+  BackgroundLocationService(this.notificationService, this.firestoreService, this.geolocationService, this.backgroundService) {
+    _initiateBackgroundProcess();
+  }
+
+  Future<void> _initiateBackgroundProcess() async {
+    await backgroundService.initialize();
+  }
+
   Future<void> startTracking() async {
     await _initiateBackgroundProcess();
-    await FlutterBackground.enableBackgroundExecution();
+    await backgroundService.enableBackgroundExecution();
 
-    Geolocator.getPositionStream().listen((Position position) {
+    geolocationService.getCurrentLocation().listen((Position position) {
       // Handle the location updates and check for events proximately
       _checkEventProximity(position);
     });

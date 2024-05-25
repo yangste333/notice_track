@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
@@ -72,6 +73,50 @@ class MockYamlReader extends Mock implements YamlReader{
   }
 }
 
+class MockNotificationService extends Mock implements NotificationService{
+  String lastNotification = "";
+  @override
+  void init(){
+    print("initialized");
+  }
+  @override
+  Future<void> sendNotification(String title, String body) async{
+    lastNotification = "$title, $body";
+  }
+}
+
+class MockGeolocation extends Mock implements GeolocationService{
+  @override
+  Stream<Position> getCurrentLocation(){
+    Position p = Position(
+      longitude: 1.0,
+      latitude: 1.0,
+      accuracy: 1.0,
+      altitude: 1.0,
+      altitudeAccuracy: 1.0,
+      heading: 1.0,
+      headingAccuracy: 1.0,
+      speed: 0.0,
+      speedAccuracy: 1.0,
+      timestamp: DateTime.now()
+    );
+    List<Position> stream = [p, p, p, p, p];
+    return Stream.fromIterable(stream);
+  }
+}
+
+class MockBackground extends Mock implements BackgroundService{
+  bool initialized = false;
+  bool backgroundOK = false;
+  @override
+  Future<void> initialize() async{
+    initialized = true;
+  }
+  @override
+  Future<void> enableBackgroundExecution() async{
+    backgroundOK = true;
+  }
+}
 
 void main() {
   group('User Interface', () {
@@ -563,5 +608,25 @@ void main() {
       expect(getStuff, []);
     });
   });
-  // notifications and geolocation probably need to be through an integration test
+  group("Notifications and Geolocation", (){
+    test("Background notifications are initialized properly", () async{
+      MockNotificationService notificationService = MockNotificationService();
+      MockGeolocation geolocation = MockGeolocation();
+      MockFirebaseService firebase = MockFirebaseService();
+      MockBackground background = MockBackground();
+
+      BackgroundLocationService service = BackgroundLocationService(notificationService, firebase, geolocation, background);
+      await service.startTracking();
+      print("tracking");
+      expect(background.initialized, true);
+      expect(background.backgroundOK, true);
+
+    });
+    test("Geolocation gettable", () async{
+      GeolocationService service = GeolocationService();
+      Stream<Position> posStream = service.getCurrentLocation();
+      expect(posStream, isNotNull);
+    });
+
+  });
 }
