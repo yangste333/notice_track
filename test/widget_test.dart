@@ -21,7 +21,7 @@ import 'package:notice_track/yaml_readers/yaml_reader.dart';
 
 
 class MockFirebaseService extends Mock implements FirestoreService{
-  List<MarkerData> markers = [MarkerData(position: const LatLng(1.0, 2.0), label: 'Example', description: 'Example', category: 'Example 1', )];
+  List<MarkerData> markers = [MarkerData(position: const LatLng(1.0, 2.0), label: 'Example', description: 'Example', category: 'Example 1', datetime: DateTime.now())];
 
   @override
   Stream<List<MarkerData>> pullMarkers() {
@@ -32,8 +32,8 @@ class MockFirebaseService extends Mock implements FirestoreService{
   }
 
   @override
-  Future<void> pushMarker(LatLng position, String label, String description, String category){
-    markers.add(MarkerData(position: position, label: label, description: description, category: category));
+  Future<void> pushMarker(LatLng position, String label, String description, String category, DateTime timestamp){
+    markers.add(MarkerData(position: position, label: label, description: description, category: category, datetime: timestamp));
     return Future.value();
   }
 }
@@ -342,7 +342,7 @@ void main() {
       MockYamlReader mockReader = MockYamlReader();
 
       mockFirebase.markers = [MarkerData(position: const LatLng(40.7128, -74.0060),
-          label: "Unique Label", description: "Unique description", category: "Category")];
+          label: "Unique Label", description: "Unique description", category: "Category", datetime: DateTime.now())];
 
       await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader));
 

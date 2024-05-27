@@ -234,7 +234,9 @@ class _MapWidgetState extends State<MapWidget> {
                   () => _showEventInfo(labelController.text, descriptionController.text, finalCategory),
             );
             setState(() => events.add(newMarker));
-            widget.firestoreService.pushMarker(latlng, labelController.text, descriptionController.text, categoryController.text);
+            widget.firestoreService.pushMarker(latlng,
+                labelController.text, descriptionController.text, categoryController.text,
+                DateTime.now());
             Navigator.of(context).pop();
           }
         },
