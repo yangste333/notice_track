@@ -19,12 +19,9 @@ class YamlReader{
     catch (_){
       print("Error loading file");
     }
-
   }
-
 
   List<dynamic> getCategories(){
     return _categories;
   }
-
 }

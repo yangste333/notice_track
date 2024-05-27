@@ -4,8 +4,7 @@ import 'package:latlong2/latlong.dart';
 
 import 'package:notice_track/background/notification_service.dart';
 import 'package:notice_track/database/firestore_service.dart';
-
-import 'geolocation_service.dart';
+import 'package:notice_track/background/geolocation_service.dart';
 
 abstract class BackgroundService{
   Future<void> initialize();
@@ -28,7 +27,6 @@ class FlutterBackgroundService extends BackgroundService{
       ),
     );
   }
-
 }
 
 class BackgroundLocationService {

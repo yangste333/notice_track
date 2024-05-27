@@ -11,6 +11,5 @@ class UserSettings extends HiveObject{
   @HiveField(2)
   String screenName;
 
-
   UserSettings(this.getNotifications, this.notificationTypes, this.screenName);
 }

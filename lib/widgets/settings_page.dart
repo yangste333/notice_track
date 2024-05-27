@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:notice_track/yaml_readers/yaml_reader.dart';
 import 'package:hive/hive.dart';
-import 'user_settings.dart';
+
+import 'package:notice_track/yaml_readers/yaml_reader.dart';
+import 'package:notice_track/database/user_settings.dart';
 
 class SettingsPage extends StatefulWidget {
   final Box settingsBox;
@@ -27,7 +28,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (widget.settingsReader.getCategories()[0].length != _activeNotifications.keys.length){
       _activeNotifications = _createNotificationMap();
     }
-    _screenName = (settings != null) ? settings.screenName : "Stephen";
+    _screenName = (settings != null) ? settings.screenName : 'Stephen';
   }
 
   Map<String, bool> _createNotificationMap(){
@@ -51,16 +52,16 @@ class _SettingsPageState extends State<SettingsPage> {
       future: _setUpDatabaseFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting){
-          return const Text("Loading...");
+          return const Text('Loading...');
         }else if (snapshot.hasError) {
-          return const Text("Issue reading settings on phone. Please try again.");
+          return const Text('Issue reading settings on phone. Please try again.');
         }else{
           return SingleChildScrollView(
             child: ListView(
               shrinkWrap: true,
               children: [
                 ElevatedButton(onPressed: widget.returnToPreviousPage,
-                    child: const Text("Back")),
+                    child: const Text('Back')),
                 ListTile(
                 leading: Checkbox(
                   value: _notificationState,
@@ -70,7 +71,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     });
                   }
                 ),
-                title: const Text("Notifications")
+                title: const Text('Notifications')
               ),
               ListView.builder(
                 shrinkWrap: true,
@@ -94,7 +95,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 }
               ),
               ListTile(
-                title: const Text("Username"),
+                title: const Text('Username'),
                 subtitle: TextFormField(
                   initialValue: _screenName,
                   onChanged: (newValue){
@@ -110,16 +111,13 @@ class _SettingsPageState extends State<SettingsPage> {
                   widget.settingsBox.put('user_settings', putIn);
                   widget.returnToPreviousPage();
                 },
-                child: const Text("Submit")
+                child: const Text('Submit')
               )
-            ]
-            )
+            ])
           );
         }
       }
     );
     return toReturn;
   }
-
 }
-

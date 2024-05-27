@@ -12,8 +12,12 @@ class NotificationService {
   }
 
   void init() async {
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('notice_track_icon');
-    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+    const AndroidInitializationSettings initializationSettingsAndroid =
+    AndroidInitializationSettings('notice_track_icon');
+
+    const InitializationSettings initializationSettings =
+    InitializationSettings(android: initializationSettingsAndroid);
+
     await localNotifications.initialize(initializationSettings);
 
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -37,7 +41,7 @@ class NotificationService {
             android: AndroidNotificationDetails(
               channel.id,
               channel.name,
-              icon: androidNotification.smallIcon,
+              icon: 'notice_track_icon',
             ),
           ),
         );
@@ -46,11 +50,25 @@ class NotificationService {
   }
 
   Future<void> sendNotification(String title, String body) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-        'Channel id', 'Channel name',
-        importance: Importance.max, priority: Priority.high, showWhen: false);
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    AndroidNotificationDetails(
+        'Channel id',
+        'Channel name',
+        importance: Importance.max,
+        priority: Priority.high,
+        showWhen: false,
+        icon: 'notice_track_icon'
+    );
 
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
-    await localNotifications.show(0, title, body, platformChannelSpecifics, payload: 'item x');
+    const NotificationDetails platformChannelSpecifics =
+    NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    await localNotifications.show(
+        0,
+        title,
+        body,
+        platformChannelSpecifics,
+        payload: 'item x'
+    );
   }
 }

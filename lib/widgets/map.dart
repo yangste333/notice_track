@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:async';
 
-import 'package:notice_track/widgets/event.dart';
+import 'package:notice_track/widgets/event_marker.dart';
 import 'package:notice_track/database/firestore_service.dart';
+import 'package:notice_track/yaml_readers/yaml_reader.dart';
+import 'package:notice_track/widgets/event_creation_dialog.dart';
+import 'package:notice_track/widgets/user_location_marker.dart';
 
-import '../yaml_readers/yaml_reader.dart';
 
 class MapWidget extends StatefulWidget {
   final bool creatingEvent;
@@ -31,14 +34,12 @@ class MapWidget extends StatefulWidget {
 
 class _MapWidgetState extends State<MapWidget> {
   List<Marker> events = [];
-  Marker? userLocationMarker;
   Timer? _timer;  // Declare a Timer
 
   @override
   void initState() {
     super.initState();
     _getMarkersFromFirebase();
-    _getUserLocation();
     _startPeriodicFirebaseUpdates();
   }
 
@@ -50,15 +51,10 @@ class _MapWidgetState extends State<MapWidget> {
 
   @override
   Widget build(BuildContext context) {
-    List<Marker> allMarkers = List<Marker>.from(events);
-    if (userLocationMarker != null) {
-      allMarkers.add(userLocationMarker!);
-    }
-
     return FlutterMap(
       options: MapOptions(
         interactionOptions: const InteractionOptions(flags: ~InteractiveFlag.doubleTapZoom),
-        initialCenter: const LatLng(40.7128, -74.0060),
+        initialCenter: const LatLng(47.6555, -122.3032),
         initialZoom: 10,
         onTap: _handleTap,
       ),
@@ -67,7 +63,12 @@ class _MapWidgetState extends State<MapWidget> {
           urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'dev.fleaflet.flutter_map.example',
         ),
-        MarkerLayer(markers: allMarkers),
+        MarkerLayer(markers: events),
+        UserLocationMarker(
+          onLocationUpdated: (LatLng position) {
+            _checkEventProximity(position);
+          },
+        ),
       ],
     );
   }
@@ -79,183 +80,103 @@ class _MapWidgetState extends State<MapWidget> {
   void _getMarkersFromFirebase() {
     widget.firestoreService.pullMarkers().listen((markerDataList) {
       setState(() {
-        events = markerDataList.map((markerData) =>
-            EventMarker.createEventMarker(
-                markerData.position,
-                markerData.label,
-                    () => _showEventInfo(markerData.label, markerData.description, markerData.category)
-            )
-        ).toList();
+        events = markerDataList.map((markerData) {
+          return EventMarker.createEventMarker(
+            markerData.position,
+            markerData.label,
+                () => _showEventInfo(markerData),
+          );
+        }).toList();
       });
-    });
-  }
-
-  void _getUserLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    // Check if location services are enabled.
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      await Geolocator.openLocationSettings();
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        // Permissions are denied, try again next time.
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      // Permissions are denied forever.
-      return;
-    }
-
-    // Continuously update location.
-    Geolocator.getPositionStream().listen((Position position) {
-      setState(() {
-        userLocationMarker = Marker(
-          point: LatLng(position.latitude, position.longitude),
-          width: 74,
-          height: 74,
-          alignment: Alignment.topCenter,
-          rotate: true,
-          child: const Icon(
-            Icons.location_on_sharp,
-            size: 50,
-            color: Colors.blue,
-          ),
-        );
-      });
-      _checkEventProximity(position);
     });
   }
 
   void _startPeriodicFirebaseUpdates() {
     _timer = Timer.periodic(const Duration(seconds: 30), (_) {
-      _getMarkersFromFirebase();  // Get updated data from Firebase every 30 seconds.
+      _getMarkersFromFirebase();
     });
   }
 
-  void _checkEventProximity(Position position) {
+  void _checkEventProximity(LatLng position) {
     const double distanceThreshold = 5000; // 5 Kilometer event threshold.
-    LatLng userLatLng = LatLng(position.latitude, position.longitude);
     int nearbyEvents = 0;
 
     for (Marker marker in events) {
       double distance = Geolocator.distanceBetween(
-          userLatLng.latitude,
-          userLatLng.longitude,
-          marker.point.latitude,
-          marker.point.longitude
+        position.latitude,
+        position.longitude,
+        marker.point.latitude,
+        marker.point.longitude,
       );
 
       if (distance <= distanceThreshold) {
         nearbyEvents++;
       }
 
-      // Fire callback with event data
       widget.onEventsNearby?.call(nearbyEvents);
     }
   }
 
-  void _handleTap(TapPosition tapPosition, LatLng latlng) {
+  void _handleTap(TapPosition _, LatLng latlng) {
     if (widget.creatingEvent) {
-      TextEditingController labelController = TextEditingController();
-      TextEditingController descriptionController = TextEditingController();
-      TextEditingController categoryController = TextEditingController();
-      String categoryItem = "";
-      categoryController.addListener(() {
-        setState((){
-          categoryItem = categoryController.text;
-        });
-      });
-
       showDialog(
         context: context,
         barrierDismissible: true,
-        builder: (context) => AlertDialog(
-          title: const Text('Register Event'),
-          content: _creationDialogContent(labelController, descriptionController, categoryController, (String s){
-            categoryItem = s;
-          }),
-          actions: _creationDialogActions(context, latlng, labelController, descriptionController, categoryController, categoryItem),
-        ),
+        builder: (context) =>
+            EventCreationDialog(
+              latlng: latlng,
+              onCancel: widget.onEventCreationCancelled,
+              onSubmit: (String label, String description, String category, List<XFile> images) {
+                Marker newMarker = EventMarker.createEventMarker(
+                  latlng,
+                  label,
+                      () => _showEventInfo(MarkerData(
+                    position: latlng,
+                    label: label,
+                    description: description,
+                    category: category,
+                    photoUrls: [], // Wait for firebase to process the photo
+                    datetime: DateTime.now(),
+                  )),
+                );
+                setState(() => events.add(newMarker));
+                widget.firestoreService.pushMarker(
+                    latlng,
+                    label,
+                    description,
+                    category,
+                    images,
+                    DateTime.now());
+              },
+              categoryReader: widget.categoryReader,
+            ),
       ).then((_) => widget.onEventCreationCancelled());
     }
   }
 
-  Widget _creationDialogContent(TextEditingController labelController, TextEditingController descriptionController,
-      TextEditingController categoryController, Function(String) updateCategory) {
-    return SingleChildScrollView(
-      child: ListBody(
-        children: [
-          TextField(
-            controller: labelController,
-            autofocus: true,
-            decoration: const InputDecoration(hintText: 'Enter event type here'),
-            textInputAction: TextInputAction.next,
-          ),
-          // add a dropdown for a category
-          DropdownMenu<String>(dropdownMenuEntries: widget.categoryReader.getCategories()[0].map<DropdownMenuEntry<String>>((dynamic e){
-              return DropdownMenuEntry<String>(label: e as String, value: e);
-            }).toList(),
-            controller: categoryController,
-            requestFocusOnTap: true,
-            label: const Text("Category"),
-          ),
-          TextField(
-            controller: descriptionController,
-            decoration: const InputDecoration(hintText: 'Enter description here'),
-            textInputAction: TextInputAction.done,
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _creationDialogActions(BuildContext context, LatLng latlng, TextEditingController labelController, TextEditingController descriptionController,
-      TextEditingController categoryController, String finalCategory) {
-    return [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('Cancel'),
-      ),
-      TextButton(
-        onPressed: () {
-          if (labelController.text.isNotEmpty) {
-            Marker newMarker = EventMarker.createEventMarker(
-              latlng,
-              labelController.text,
-                  () => _showEventInfo(labelController.text, descriptionController.text, finalCategory),
-            );
-            setState(() => events.add(newMarker));
-            widget.firestoreService.pushMarker(latlng,
-                labelController.text, descriptionController.text, categoryController.text,
-                DateTime.now());
-            Navigator.of(context).pop();
-          }
-        },
-        child: const Text('Submit'),
-      ),
-    ];
-  }
-
-  void _showEventInfo(String label, String description, String category) {
+  void _showEventInfo(MarkerData markerData) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title:
-        Text(label),
-        content: Column(
-          children: [
-            Text(category),
-            Text(description),
-          ]
+        title: Text(markerData.label),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(markerData.category),
+              Text(markerData.description),
+              const SizedBox(height: 10),
+              if (markerData.photoUrls.isNotEmpty)
+                SizedBox(
+                  height: 200,
+                  width: double.maxFinite,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    children: markerData.photoUrls.map((url) => _buildImage(url)).toList(),
+                  ),
+                ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -265,5 +186,28 @@ class _MapWidgetState extends State<MapWidget> {
         ],
       ),
     );
+  }
+
+  Widget _buildImage(String url) {
+    return FutureBuilder<String>(
+      future: _getImageDownloadURL(url),
+      builder: (BuildContext context, AsyncSnapshot<String> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return const Icon(Icons.error);
+        } else if (snapshot.hasData) {
+          return Image.network(
+              snapshot.data!, fit: BoxFit.cover, width: 150, height: 150);
+        } else {
+          return const SizedBox();
+        }
+      },
+    );
+  }
+
+  Future<String> _getImageDownloadURL(String url) async {
+    // Directly returning the URL, since the marker already contains it
+    return url;
   }
 }

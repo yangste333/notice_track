@@ -1,27 +1,26 @@
 import 'dart:async';
-
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:hive/hive.dart';
 import 'package:hive_flutter/adapters.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:mockito/mockito.dart';
-import 'package:notice_track/app.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:mockito/mockito.dart';
+
+import 'package:notice_track/app.dart';
 import 'package:notice_track/background/background_location.dart';
 import 'package:notice_track/background/geolocation_service.dart';
 import 'package:notice_track/background/notification_service.dart';
 import 'package:notice_track/database/firestore_service.dart';
-import 'package:notice_track/settings_page.dart';
-import 'package:notice_track/user_settings.dart';
+import 'package:notice_track/widgets/settings_page.dart';
+import 'package:notice_track/database/user_settings.dart';
 import 'package:notice_track/widgets/map.dart';
 import 'package:notice_track/yaml_readers/yaml_reader.dart';
 
-
 class MockFirebaseService extends Mock implements FirestoreService{
-  List<MarkerData> markers = [MarkerData(position: const LatLng(1.0, 2.0), label: 'Example', description: 'Example', category: 'Example 1', datetime: DateTime.now())];
+  List<MarkerData> markers = [MarkerData(position: const LatLng(1.0, 2.0), label: 'Example', description: 'Example', category: 'Example 1', photoUrls: [], datetime: DateTime.now())];
 
   @override
   Stream<List<MarkerData>> pullMarkers() {
@@ -32,8 +31,8 @@ class MockFirebaseService extends Mock implements FirestoreService{
   }
 
   @override
-  Future<void> pushMarker(LatLng position, String label, String description, String category, DateTime timestamp){
-    markers.add(MarkerData(position: position, label: label, description: description, category: category, datetime: timestamp));
+  Future<void> pushMarker(LatLng position, String label, String description, String category, List<XFile> photoUrls, DateTime timestamp){
+    markers.add(MarkerData(position: position, label: label, description: description, category: category, photoUrls: [], datetime: timestamp));
     return Future.value();
   }
 }
@@ -342,7 +341,7 @@ void main() {
       MockYamlReader mockReader = MockYamlReader();
 
       mockFirebase.markers = [MarkerData(position: const LatLng(40.7128, -74.0060),
-          label: "Unique Label", description: "Unique description", category: "Category", datetime: DateTime.now())];
+          label: "Unique Label", description: "Unique description", category: "Category", photoUrls: [], datetime: DateTime.now())];
 
       await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader));
 

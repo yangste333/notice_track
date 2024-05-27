@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
-import 'package:notice_track/settings_page.dart';
+import 'package:notice_track/widgets/settings_page.dart';
 import 'package:notice_track/widgets/map.dart';
+import 'package:notice_track/widgets/main_scaffold.dart';
+import 'package:notice_track/widgets/proximity_notification_tooltip.dart';
+import 'package:notice_track/widgets/create_event_button.dart';
 import 'package:notice_track/yaml_readers/yaml_reader.dart';
 import 'package:notice_track/database/firestore_service.dart';
 
@@ -11,9 +14,13 @@ class MyHomePage extends StatefulWidget {
   final FirestoreService firestoreService;
   final Box settingsBox;
   final YamlReader settingsReader;
-  
-  const MyHomePage({super.key, required this.title, required this.firestoreService,
-    required this.settingsBox, required this.settingsReader});
+
+  const MyHomePage(
+      {super.key,
+        required this.title,
+        required this.firestoreService,
+        required this.settingsBox,
+        required this.settingsReader});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -22,46 +29,53 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int nearbyEventCount = 0;
   String currentPage = "Homepage";
+  bool creatingEvent = false;
 
-  Widget _showSettingsPage(){
-    return Scaffold(
-      appBar: _getAppBar(widget.title),
-      resizeToAvoidBottomInset: false,
-      body: SettingsPage(
-        returnToPreviousPage: (){
-          setState((){
+  @override
+  Widget build(BuildContext context) {
+    return MainScaffold(
+      title: widget.title,
+      currentPage: currentPage,
+      onSettingsPressed: () {
+        setState(() {
+          creatingEvent = false;
+          currentPage = "Settings";
+        });
+      },
+      onBackPressed: currentPage == "Settings" ? () {
+        setState(() {
+          currentPage = "Homepage";
+        });
+      }
+          : null,
+      body: currentPage == "Settings" ? SettingsPage(
+        returnToPreviousPage: () {
+          setState(() {
             currentPage = "Homepage";
           });
         },
         settingsBox: widget.settingsBox,
         settingsReader: widget.settingsReader,
       )
-    );
-  }
-  bool creatingEvent = false;
-
-  @override
-  Widget build(BuildContext context) {
-    if (currentPage == "Settings") {
-      return _showSettingsPage();
-    }
-    return Scaffold(
-      appBar: _getAppBar(widget.title),
-      resizeToAvoidBottomInset: false,
-      body: Stack(
+          : Stack(
         children: [
           MapWidget(
             creatingEvent: creatingEvent,
-            onEventCreationCancelled: cancelEventCreation,
+            onEventCreationCancelled: _cancelEventCreation,
             onEventsNearby: _onEventsNearby,
             firestoreService: widget.firestoreService,
             categoryReader: widget.settingsReader,
           ),
           if (creatingEvent) _eventCreationTooltip(),
-          if (nearbyEventCount > 0) _nearbyEventTooltip(),
+          if (nearbyEventCount > 0)
+            ProximityNotificationTooltip(nearbyEventCount: nearbyEventCount),
         ],
       ),
-      floatingActionButton: _createEventButton(),
+      floatingActionButton: currentPage == "Homepage" ? EventCreationButton(
+        creatingEvent: creatingEvent,
+        onToggleEventCreation: _toggleEventCreation,
+        onCancelEventCreation: _cancelEventCreation,
+      ) : null,
     );
   }
 
@@ -69,55 +83,16 @@ class _MyHomePageState extends State<MyHomePage> {
   //                   _MyHomePageState helper methods                      //
   ////////////////////////////////////////////////////////////////////////////
 
-  AppBar _getAppBar(String title) {
-    return AppBar(
-      backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-      title: Text(title),
-      actions: currentPage == "Settings" ? [] :
-        [IconButton(
-          icon: const Icon(Icons.settings),
-          onPressed: () {
-            setState((){
-              creatingEvent = false;
-              currentPage = "Settings";
-            });
-          }
-        )
-      ],
-    );
-  }
-  
-  void cancelEventCreation() {
+  void _cancelEventCreation() {
     setState(() {
       creatingEvent = false;
     });
   }
 
-  void toggleEventCreation() {
+  void _toggleEventCreation() {
     setState(() {
       creatingEvent = !creatingEvent;
     });
-  }
-  
-  Widget _createEventButton() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        if (!creatingEvent)
-          FloatingActionButton(
-            onPressed: toggleEventCreation,
-            tooltip: 'Register Event',
-            child: const Icon(Icons.add_location),
-          ),
-        if (creatingEvent)
-          FloatingActionButton(
-            onPressed: cancelEventCreation,
-            tooltip: 'Cancel',
-            backgroundColor: Colors.red,
-            child: const Icon(Icons.cancel),
-          ),
-      ],
-    );
   }
 
   Widget _eventCreationTooltip() {
@@ -141,24 +116,5 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       nearbyEventCount = events;
     });
-  }
-
-  Widget _nearbyEventTooltip() {
-    return Positioned(
-      bottom: 140,
-      left: 0,
-      right: 0,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        color: Colors.red[900]!.withOpacity(0.5),
-        child: SingleChildScrollView(
-          child: Text(
-            "There are $nearbyEventCount events within 5km",
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
-          ),
-        ),
-      ),
-    );
   }
 }
