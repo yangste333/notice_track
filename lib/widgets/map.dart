@@ -54,7 +54,7 @@ class _MapWidgetState extends State<MapWidget> {
     return FlutterMap(
       options: MapOptions(
         interactionOptions: const InteractionOptions(flags: ~InteractiveFlag.doubleTapZoom),
-        initialCenter: const LatLng(47.6555, -122.3032),
+        initialCenter: const LatLng(47.6091, -122.3176),
         initialZoom: 10,
         onTap: _handleTap,
       ),

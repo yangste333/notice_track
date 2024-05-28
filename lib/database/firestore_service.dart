@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
+  final String _bucketUrl = "location-tracker-475db.appspot.com/photos/";
 
   Stream<List<MarkerData>> pullMarkers() {
     return _firestore.collection('alerts').snapshots().map((snapshot) =>
@@ -18,12 +19,12 @@ class FirestoreService {
       // Upload images to Firebase Storage and collect the resulting URLs in a list.
       List<String> photoUrls = await Future.wait(images.map((image) async {
         final String localFilePath = image.path;
-        print('@@@@@@ Photo path: $localFilePath');
+        // print('@@@@@@ Photo path: $localFilePath');
         File localFile = File(localFilePath);
 
         if (await localFile.exists()) {
-          print('@@@@@@ Local file exists and is accessible');
-          final String destinationStoragePath = 'alerts/${DateTime.now().millisecondsSinceEpoch}.jpg';
+          // print('@@@@@@ Local file exists and is accessible');
+          final String destinationStoragePath = '$_bucketUrl${DateTime.now().millisecondsSinceEpoch}.jpg';
           final storageRef = _storage.ref().child(destinationStoragePath);
           print('@@@@@@ Uploading image to: $destinationStoragePath');
 
@@ -31,14 +32,14 @@ class FirestoreService {
             // Uploading file to Firebase Storage.
             TaskSnapshot uploadTaskSnapshot = await storageRef.putFile(localFile);
             String downloadURL = await uploadTaskSnapshot.ref.getDownloadURL();
-            print('@@@@@@ Uploaded image URL: $downloadURL');
+            // print('@@@@@@ Uploaded image URL: $downloadURL');
             return downloadURL;
           } catch (e) {
-            print('@@@@@@ Firebase Storage upload failed: $e');
-            throw e;
+            // print('@@@@@@ Firebase Storage upload failed: $e');
+            rethrow;
           }
         } else {
-          print('@@@@@@ ERROR: Local file does not exist: $localFilePath');
+          // print('@@@@@@ ERROR: Local file does not exist: $localFilePath');
           throw Exception('@@@@@@ Local file does not exist: $localFilePath');
         }
       }));
@@ -54,7 +55,7 @@ class FirestoreService {
         'datetime': timestamp,
       });
     } catch (e) {
-      print('@@@@@@ ERROR UPLOADING MARKER: $e');
+      // print('@@@@@@ ERROR UPLOADING MARKER: $e');
       rethrow;
     }
   }

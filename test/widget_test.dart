@@ -340,7 +340,7 @@ void main() {
       MockHiveDatabase mockSettings = MockHiveDatabase();
       MockYamlReader mockReader = MockYamlReader();
 
-      mockFirebase.markers = [MarkerData(position: const LatLng(40.7128, -74.0060),
+      mockFirebase.markers = [MarkerData(position: const LatLng(47.6091, -122.3176),
           label: "Unique Label", description: "Unique description", category: "Category", photoUrls: [], datetime: DateTime.now())];
 
       await tester.pumpWidget(MyApp(firestoreService: mockFirebase, settingsBox: mockSettings, settingsReader: mockReader));
